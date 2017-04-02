@@ -1,0 +1,213 @@
+﻿@using PagedList.Mvc
+@model PagedList.IPagedList<WorkFlowaMig.Models.Zone>
+@{
+    ViewBag.Title = "Customers";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<br /><br />
+<div>
+    <table>
+        <tr>
+            <td>
+                <button type="button" id="btnCreateNew" class="btn btn-primary" data-toggle="modal" data-target="#zoneModal">
+                Create New
+            </button>
+            </td>
+            <td>@Html.Label("search", "Zone Name:", new { @class = "form-label" })</td>
+            <td>@Html.TextBox("search", ViewBag.CurrentSearch as string, new { @class = "form-control" }) </td>
+            <td>@Html.ActionLink("Filter", "Index", new { sort = ViewBag.CurrentSort, search = "xyz" }, new { @class = "btn btn-default", btnName = "FilterCustomer" })</td>
+        </tr>
+
+    </table>
+
+</div>
+<br />
+<table id="listZones" class="table">
+    <tr>
+        
+        <th>
+            @Html.ActionLink(" Zone ID", "Index", new { search = ViewBag.CurrentSearch, sort = ViewBag.CurrentSort == "ZoneId_ASC" ? "ZoneId_DESC" : "ZoneId_ASC" }, new { @class = "SortButton" })
+        </th>
+        <th>
+            @Html.ActionLink(" Zone Name", "Index", new { search = ViewBag.CurrentSearch, sort = ViewBag.CurrentSort == "ZoneName_ASC" ? "ZoneName_DESC" : "ZoneName_ASC" }, new { @class = "SortButton" })
+        </th>
+
+       
+        <th></th>
+    </tr>
+
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Id)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Name)
+            </td>
+            <td>
+                <button type='button' id='btnEdit' class='btn btn-default' onclick='return getDetailZone(@item.Id)'>Edit</button>
+                <button type='button' id='btnDelete' class='btn btn-danger' onclick='return deleteZone(@item.Id)'>Delete</button>
+            </td>
+        </tr>
+    }
+
+</table>
+
+ Page @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) of @Model.PageCount
+<div id="myPager">
+
+    @Html.PagedListPager(Model, page => Url.Action("Index", new { page, sort = ViewBag.CurrentSort, search = ViewBag.CurrentSearch }))
+</div>
+
+<div class="modal fade" id="zoneModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title"><label id="title"></label></h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-horizontal">
+                    <div class="form-group">
+                        <div class="col-md-10">
+                            <input type="hidden" class="form-control" id="Id" />
+                            <label>Name</label>
+                            <input type="text" id="Name" class="form-control" />
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="btnClose" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" id="btnSave" class="btn btn-primary">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+    @section Scripts{
+        <script type="text/javascript">
+
+            $(document).ready(function () {
+                getZones();
+                
+            })
+
+            function getZones()
+            {
+                $.ajax({
+                    url: '/Zone/Index',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        location.href = "http://localhost:50079/Zone";
+                    }
+                    //},
+                    //error: function (err) {
+                    //    alert("Error: " + err.responseText);
+                    //}
+                });
+            }
+
+            var isUpdatable = false;
+
+         
+            function getDetailZone(id) {
+                $("#title").text("Details");
+                $.ajax({
+                    url: '/Zone/GetZone/' + id,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        $("#Id").val(data.Id);
+                        $("#Name").val(data.Name);
+                       
+                        isUpdatable = true;
+                        $("#zoneModal").modal('show');
+                    },
+                    error: function (err) {
+                        alert("Error: " + err.responseText);
+                    }
+                });
+            }
+            $("#btnSave").click(function (e) {
+
+                var data = {
+                    Id: $("#Id").val(),
+                    Name: $("#Name").val(),
+                   
+                }
+                if (!isUpdatable) {
+                    $.ajax({
+                        url: '/Zone/AddZone/',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: data,
+                        success: function (data) {
+                            location.href = "http://localhost:50079/Zone";
+                            $("#zoneModal").modal('hide');
+                            clear();
+                        },
+                        error: function (err) {
+                            alert("Error: " + err.responseText);
+                        }
+                    })
+                }
+                else {
+                    $.ajax({
+                        url: '/Zone/Update/',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: data,
+                        success: function (data) {
+                            location.href = "http://localhost:50079/Zone";
+                            isUpdatable = false;
+                            $("#zoneModal").modal('hide');
+                            clear();
+                        },
+                        error: function (err) {
+                            alert("Error: " + err.responseText);
+                        }
+                    })
+                }
+            });
+
+            function deleteZone(id) {
+                var confirmDelete = confirm("Do you want to delete this zone ?");
+                if (confirmDelete) {
+                    $.ajax({
+                        url: "/Zone/Delete/" + id,
+                        type: "POST",
+                        dataType: 'json',
+                        success: function (data) {
+                            //getZones();
+                            alert("Record deleted succesuffuly !");
+                            location.href = "http://localhost:50079/Zone";
+                        },
+                        error: function (err) {
+                            alert("Error: " + err.responseText);
+                        }
+                    });
+                }
+            }
+
+            $("#btnCreateNew").click(function () {
+                $("#title").text("Create New");
+            })
+
+            // hàm đóng modal
+            $("#btnClose").click(function () {
+                clear();
+            });
+
+            // hàm reset giá trị về rỗng sau khi thực hiện Insert hoặc Update
+            function clear() {
+                $("#Id").val("");
+                $("#Name").val("");
+               
+            }
+
+        </script>
+    }
